@@ -1,3 +1,10 @@
+'''
+    'loud.py' uses PortAudio to record audio and depending on the audio data,
+    various mp3 files will play based on loudness in order to trigger the
+    Alexa Skill "Study Mode".
+    The recording time is at the user's discretion.
+'''
+
 import numpy as np
 import playsound
 from microphone import record_audio

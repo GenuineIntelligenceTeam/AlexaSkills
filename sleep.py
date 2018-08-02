@@ -1,6 +1,11 @@
+'''
+    'sleep.py' uses OpenCV VideoCapture and pretrained Haar Cascade Classifiers for face and eye detection.
+    When the detected eyes disappear for an extended amount of time, which is at the user's discretion,
+    an audio file will play, triggering the Alexa Skill, "Study Mode".
+'''
+
 import cv2
 import playsound
-
 
 face_cascade = cv2.CascadeClassifier('C:/Users/ashlaeteng/anaconda3/pkgs/opencv-3.2.0-np112py36_0/share/OpenCV/haarcascades/haarcascade_frontalface_default.xml')
 eye_cascade = cv2.CascadeClassifier('C:/Users/ashlaeteng/anaconda3/pkgs/opencv-3.2.0-np112py36_0/share/OpenCV/haarcascades/haarcascade_eye.xml')
