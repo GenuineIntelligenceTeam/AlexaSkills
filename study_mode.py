@@ -1,3 +1,13 @@
+'''
+    'study_mode.py' uses FlaskAsk to program the Alexa Skill "Study Mode". In this
+    skill, Alexa will monitor whether the user closes their eyes for too long or
+    falls asleep, and whether the room is too loud for a suitable studying
+    environment.
+    This Alexa Skill is a feature of the 'Study Buddy'.
+    _________________________________________________________
+    By the Genuine Intelligence Team of BWSI Cog*Works 2018
+'''
+
 from flask import Flask
 from flask_ask import Ask, statement, question
 import requests
