@@ -19,14 +19,14 @@ def strip_punc(corpus):
     return punc_regex.sub('', corpus)
 
 def to_counter(doc):
-    """ 
+    """
     Produce word-count of document, removing all punctuation
     and removing all punctuation.
-    
+
     Parameters
     ----------
     doc : str
-    
+
     Returns
     -------
     collections.Counter
@@ -34,15 +34,15 @@ def to_counter(doc):
     return Counter(strip_punc(doc).lower().split())
 
 def to_bag(counters):
-    """ 
+    """
     [word_counter0, word_counter1, ...] -> sorted list of unique words
-    
+
     Parameters
     ----------
     counters : Iterable[collections.Counter]
         An iterable containing {word -> count} counters for respective
         documents.
-    
+
     Returns
     -------
     List[str]
@@ -72,10 +72,10 @@ def to_tf(counter, bag):
     return np.array([counter[word] for word in bag], dtype=float)
 
 def to_idf(bag, counters):
-    """ 
+    """
     Given the bag-of-words, and the word-counts for each document, computes
     the inverse document-frequency (IDF) for each term in the bag.
-    
+
     Parameters
     ----------
     bag : Sequence[str]
@@ -83,14 +83,14 @@ def to_idf(bag, counters):
 
     counters : Iterable[collections.Counter]
         The word -> count mapping for each document.
-    
+
     Returns
     -------
     numpy.ndarray
         An array whose entries correspond to those in `bag`, storing
-        the IDF for each term `t`: 
+        the IDF for each term `t`:
                            log10(N / nt)
-        Where `N` is the number of documents, and `nt` is the number of 
+        Where `N` is the number of documents, and `nt` is the number of
         documents in which the term `t` occurs.
     """
     N = len(counters)
@@ -100,30 +100,30 @@ def to_idf(bag, counters):
 
 def tldr(corpus, threshold=10):
     """ Overall function to consolidate a document via tf-idf sorting.
-    
+
         Parameters
         ----------
             corpus : String
                 Full text to summarize.
-                
+
             threshold : int, optional(default=10)
                 Number of sentences to include in the summary.
                 If this value exceeds the number of sentences in
                 the corpus, the entire text will be returned
                 unchanged.
-                
+
         Returns
         -------
             summary : String
                 Summarized form of initial input text.
     """
-    
+
     #Tokenize the corpus into sentences
     sentences = nltk.tokenize.sent_tokenize(corpus)
-    
+
     if(threshold >= len(sentences)):
         return corpus
-    
+
     #Remove punctuation and lower strings for tf-idf counting
     sentences_lower = [strip_punc(token).lower() for token in sentences]
 
@@ -131,21 +131,21 @@ def tldr(corpus, threshold=10):
     counters = []
     for sent in sentences_lower:
         counters.append(to_counter(sent))
-        
+
     bag = to_bag(counters)
-    
+
     #Compute tf descriptors for each sentence and idf descriptor
     tfs = np.ndarray((len(sentences), len(bag)))
     for i, counter in enumerate(counters):
         tfs[i,:] = to_tf(counter, bag)
-        
+
     idf = to_idf(bag, counters)
-    
+
     #Compute tf-idf scores, summing along each sentence, and re-sort sentence array
     tf_idf = tfs * idf
     sentence_scores = np.mean(tf_idf, axis=1)
     sentence_ids = sorted(np.argsort(sentence_scores)[::-1][:threshold])
-    
+
     #Guarantee inclusion of first sentence in the document
     if 0 not in sentence_ids:
         sentence_ids.insert(0, 0)
@@ -173,7 +173,7 @@ def wiki_search(Search):
         Search : string
             Input query from the search intent.
     """
-    
+
     #Capitalize search string and generate wikipedia API query
     page = Search.title()
     query = "https://en.wikipedia.org/w/api.php?action=query&format=json&titles="
@@ -194,7 +194,9 @@ def wiki_search(Search):
         return statement("Sorry, I haven't heard of that.")
 
     #Apply TLDR algorithm to extracted data
-    page_tldr = tldr(page_extract, threshold=2) 
+    page_tldr = tldr(page_extract, threshold=2)
+
+    print("TLDR:   " + page_tldr)
 
     return statement(page_tldr)
 
