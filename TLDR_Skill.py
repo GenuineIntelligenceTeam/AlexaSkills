@@ -8,6 +8,7 @@ import gensim
 from collections import Counter
 from flask import Flask
 from flask_ask import Ask, statement, question
+import requests
 
 app = Flask(__name__)
 ask = Ask(app, "/")
@@ -70,6 +71,33 @@ def to_tf(counter, bag):
     """
     return np.array([counter[word] for word in bag], dtype=float)
 
+def to_idf(bag, counters):
+    """ 
+    Given the bag-of-words, and the word-counts for each document, computes
+    the inverse document-frequency (IDF) for each term in the bag.
+    
+    Parameters
+    ----------
+    bag : Sequence[str]
+        Ordered list of words that we care about
+
+    counters : Iterable[collections.Counter]
+        The word -> count mapping for each document.
+    
+    Returns
+    -------
+    numpy.ndarray
+        An array whose entries correspond to those in `bag`, storing
+        the IDF for each term `t`: 
+                           log10(N / nt)
+        Where `N` is the number of documents, and `nt` is the number of 
+        documents in which the term `t` occurs.
+    """
+    N = len(counters)
+    nt = [sum(1 if t in counter else 0 for counter in counters) for t in bag]
+    nt = np.array(nt, dtype=float)
+    return np.log10(N / nt)
+
 def tldr(corpus, threshold=10):
     """ Overall function to consolidate a document via tf-idf sorting.
     
@@ -115,28 +143,60 @@ def tldr(corpus, threshold=10):
     
     #Compute tf-idf scores, summing along each sentence, and re-sort sentence array
     tf_idf = tfs * idf
-    sentence_scores = np.sum(tf_idf, axis=1)
+    sentence_scores = np.mean(tf_idf, axis=1)
     sentence_ids = sorted(np.argsort(sentence_scores)[::-1][:threshold])
     
     #Guarantee inclusion of first sentence in the document
     if 0 not in sentence_ids:
         sentence_ids.insert(0, 0)
         sentence_ids.pop()
-    
+    for i in sentence_ids:
+        print(sentences[i] + "\n")
     #Return joined form of all top sentences
-    return ' '.join(sentences[i] for i in sentence_ids)
+    return '\n'.join(sentences[i].split(".")[0] for i in sentence_ids)
 
 @ask.launch
 def start_skill():
+    """
+    Initial starting point for the TLDR Alexa skill.
+    """
     msg = "Hello. What would you like information about?"
     return question(msg)
 
 @ask.intent("SearchIntent")
 def wiki_search(Search):
-    page = Search.title()
-    query = "https://en.wikipedia.org/w/index.php?title=" + page + "&action=raw"
+    """
+    Perform a wikipedia API query and search for a given article.
 
-    return statement(Search)
+    Parameters
+    ----------
+        Search : string
+            Input query from the search intent.
+    """
+    
+    #Capitalize search string and generate wikipedia API query
+    page = Search.title()
+    query = "https://en.wikipedia.org/w/api.php?action=query&format=json&titles="
+    query += page
+    query += "&prop=extracts&explaintext"
+
+    #Query wikipedia API to obtain JSON
+    response = requests.get(query).json()
+
+    #Parse json to obtain extracted text
+    page_data = next(iter(response['query']['pages'].values()))
+    page_extract = ""
+
+    #Attempt to get extracted data and return on failure
+    try:
+        page_extract = page_data['extract']
+    except KeyError as e:
+        return statement("Sorry, I haven't heard of that.")
+
+    #Apply TLDR algorithm to extracted data
+    page_tldr = tldr(page_extract, threshold=2) 
+
+    return statement(page_tldr)
 
 if __name__ == '__main__':
     app.run(debug=True)
