@@ -1,7 +1,3 @@
-# AlexaSkills
-Final project for Week 4 of CogWorks 2018.
+Saved models: https://www.dropbox.com/s/r6hke2g5r2qf6c7/allModels.zip?dl=0
 
-
-## TODO
-
-Add documentation on how to use each skill! :-)
+Database: https://www.kaggle.com/c/emotion-detection-from-facial-expressions
